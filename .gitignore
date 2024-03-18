@@ -18,3 +18,6 @@ src/sentan.egg-info/
 
 # Ignore dist
 dist/
+
+# Ignore data
+data/

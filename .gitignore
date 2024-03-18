@@ -16,3 +16,5 @@ build/
 # Ignore path create for the project
 src/sentan.egg-info/
 
+# Ignore dist
+dist/

@@ -9,7 +9,7 @@ version = "0.1.0"
 authors = [{name="Jesus Chaves", email="jesus.chaves@usa.edu.co"}]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy", "pandas", "scikit-learn", "fastapi", "uvicorn", "unidecode"
+    "numpy", "pandas", "scikit-learn", "fastapi", "uvicorn", "unidecode", "nltk"
 ]
 
 [project.optional-dependencies]

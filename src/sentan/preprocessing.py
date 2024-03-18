@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from pandas import DataFrame
 from typing import List
 from unidecode import unidecode
+from nltk import word_tokenize
+from nltk.corpus import stopwords
 import re
 
 class AbstractPreprocessor(ABC):
@@ -24,14 +26,6 @@ class AbstractTextStep(ABC):
         return text
     
 
-class DupSpacesStep(AbstractTextStep):
-    def __init__(self):
-        self.pattern = re.compile(r"\s+")
-
-    def call(self, text: str) -> str:
-        return re.sub(self.pattern, " ", text)
-
-
 class LowerStep(AbstractTextStep):
     def call(self, text: str) -> str:
         return text.lower()
@@ -40,6 +34,61 @@ class LowerStep(AbstractTextStep):
 class UnicodeStep(AbstractTextStep):
     def call(self, text: str) -> str:
         return unidecode(text)
+
+
+class WordTokenStep(AbstractTextStep):
+    def __init__(self, lang: str = "english"):
+        self.lang = lang
+
+    def call(self, text: str) -> str:
+        return " ".join(word_tokenize(text, language=self.lang))
+
+
+class StopWordsStep(AbstractTextStep):
+    def __init__(self, lang: str = "english"):
+        self.lang = lang
+        self.stop_words = stopwords.words(self.lang)
+
+    def call(self, text: str) -> str:
+        tokens = text.split(" ")
+        filtered_tokens = filter(lambda token: token not in self.stop_words, tokens)
+        return " ".join(filtered_tokens)
+
+
+class LenFilterStep(AbstractTextStep):
+    def __init__(self, min_len: int, max_len: int) -> None:
+        self.min_len = min_len
+        self.max_len = max_len
+
+    def call(self, text: str) -> str:
+        tokens = text.split(" ")
+        filtered_tokens = filter(lambda token: len(token) >= self.min_len and len(token) <= self.max_len, tokens)
+        return " ".join(filtered_tokens)
+
+
+class AbstractRegexStep(AbstractTextStep, ABC):
+    @abstractmethod
+    def get_pattern(self) -> str:
+        pass
+
+    def call(self, text: str) -> str:
+        pattern = self.get_pattern()
+        return re.sub(pattern, " ", text)
+
+
+class URLRemovalStep(AbstractRegexStep):
+    def get_pattern(self) -> re.Pattern:
+        return re.compile(r"https?://[^\s]+ ")
+
+
+class SPRemovalStep(AbstractRegexStep):
+    def get_pattern(self) -> re.Pattern:
+        return re.compile(r"[^a-zA-Z\s]+")
+    
+
+class DupSpacesStep(AbstractTextStep):
+    def get_pattern(self) -> re.Pattern:
+        return re.compile(r"\s+")
 
 
 class TextPreprocessor(AbstractPreprocessor):

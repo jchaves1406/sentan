@@ -1,0 +1,18 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore build files
+build/
+
+# Ignore logs
+*.log
+
+# Ignore .DS_Store
+.DS_Store
+
+# Ignore .vscode
+.vscode/
+
+# Ignore path create for the project
+src/sentan.egg-info/
+

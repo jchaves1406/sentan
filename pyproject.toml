@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "sentan"
+version = "0.1.0"
+authors = [{name="Jesus Chaves", email="jesus.chaves@usa.edu.co"}]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy", "pandas", "scikit-learn"
+]
+
+[tool.setuptools.packages.find]
+where = ["src/"]
+ 
+# The  pyproject.toml  file is a configuration file that contains the metadata of the project, the dependencies, and the build system. 
+# The  [build-system]  section specifies the build system to use, in this case,  setuptools  and  setuptools-scm . The  build-backend  key specifies the build system to use, in this case,  setuptools.build_meta . 
+# The  [project]  section contains the metadata of the project, such as the name, version, authors, and dependencies. 
+# The  [tool.setuptools.packages.find]  section specifies the location of the packages to include in the distribution. In this case, the  where  key specifies the  src  directory. 
+# The  setup.cfg  file is a configuration file that contains the configuration for the build system. 
+# The  [metadata]  section contains the metadata of the project, such as the name, version, authors, and dependencies.

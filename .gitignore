@@ -21,3 +21,6 @@ dist/
 
 # Ignore data
 data/
+
+# Ignore __pycache__
+scripts/__pycache__/

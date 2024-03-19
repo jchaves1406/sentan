@@ -34,7 +34,7 @@ class ApiInput(BaseModel):
 
 class ApiOutput(BaseModel):
     text: str
-    prediction: int
+    prediction: str
     time: float
 
 
@@ -44,6 +44,7 @@ def model_prediction(inp: ApiInput) -> ApiOutput:
     model = joblib.load("model.joblib")
     text = inp.text
     prediction = str(model.predict([text]).flatten())
+    print(prediction)
     delta_t = time.time() - t0
     return ApiOutput(
             text=text,

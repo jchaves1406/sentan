@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from pandas import DataFrame
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sentan.eval import ModelEvaluator
 from typing import Dict
 
@@ -17,12 +18,37 @@ class AbstractModelBuilder(ABC):
         pass
 
 
+class BowLogisticBuilder(AbstractModelBuilder):
+    def build(self) -> "BowLogisticBuilder":
+        self.model = Pipeline([
+            ("vect", TfidfVectorizer()),
+            ("clf", LogisticRegression())
+        ])
+        return self
+    
+
+class TFIDFRandomForestBuilder(AbstractModelBuilder):
+    def __init__(self, n_estimators: int, max_depth: int) -> None:
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+
+
+    def build(self) -> "TFIDFRandomForestBuilder":
+        self.model = Pipeline([
+            ("vect", TfidfVectorizer()),
+            ("clf", RandomForestClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth))
+        ])
+        return self
+
+
 class TFIDFLogisticBuilder(AbstractModelBuilder):
     def build(self) -> "TFIDFLogisticBuilder":
         self.model = Pipeline([
             ("vect", CountVectorizer()),
             ("clf", LogisticRegression())
         ])
+        return self
+
 
 
 class AbstractModelProccessor(ABC):

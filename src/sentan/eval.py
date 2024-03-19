@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score
-from pandas import DataFrame, Series
-from typing import List, Dict
+from sklearn.metrics import accuracy_score, f1_score
+from pandas import Series
+from typing import Dict
 
 class AbstractMetric(ABC):
     model: Pipeline
@@ -19,6 +19,14 @@ class AccuracyMetric(AbstractMetric):
     def call(self, data: Series, label: Series) -> float:
         y_pred = self.model.predict(data)
         return accuracy_score(label, y_pred)
+    
+class F1Metric(AbstractMetric):
+    def __init__(self, average: str) -> None:
+        self.average = average
+
+    def call(self, data: Series, label: Series) -> float:
+        y_pred = self.model.predict(data)
+        return f1_score(label, y_pred, average=self.average)
 
 class ModelEvaluator:
     def __init__(self, metrics: Dict[str, AbstractMetric]):

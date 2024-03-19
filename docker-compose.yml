@@ -3,5 +3,7 @@ services:
   app:
     build: .
     container_name: sentan
-    stdin_open: true
-    tty: true
+    # stdin_open: true
+    # tty: true
+    ports:
+      - "8000:8000"

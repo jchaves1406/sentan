@@ -1,0 +1,52 @@
+import time
+import joblib
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+
+app = FastAPI()
+
+@app.get("/")
+def get_html() -> HTMLResponse: 
+    return HTMLResponse("""
+    <html>
+        <head>
+            <title>My API</title>
+        </head>
+        <body>
+            <h1>Welcome to my API</h1>
+            <br>
+            <p>Use the docs to see the available endpoints</p>
+        </body>
+    </html>
+""")
+
+class JsonResponse(BaseModel):
+    name: str
+    new_name: str
+
+@app.post("/json")
+def get_json(name: str) -> JsonResponse:
+    return {"name": name, "new_name": f"{name} Pablo"}
+
+class ApiInput(BaseModel):
+    text: str
+
+class ApiOutput(BaseModel):
+    text: str
+    prediction: int
+    time: float
+
+
+@app.post("/model")
+def model_prediction(inp: ApiInput) -> ApiOutput:
+    t0 = time.time()
+    model = joblib.load("model.joblib")
+    text = inp.text
+    prediction = str(model.predict([text]).flatten())
+    delta_t = time.time() - t0
+    return ApiOutput(
+            text=text,
+            prediction=prediction,
+            time=delta_t
+            )

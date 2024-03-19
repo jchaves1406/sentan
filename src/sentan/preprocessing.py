@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
-from pandas import DataFrame
-from typing import List
-from unidecode import unidecode
-from nltk import word_tokenize
-from nltk.corpus import stopwords
 import re
+from unidecode import unidecode
+from pandas import DataFrame
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from abc import ABC, abstractmethod
+from typing import List
 
 class AbstractPreprocessor(ABC):
     data: DataFrame
@@ -12,84 +12,79 @@ class AbstractPreprocessor(ABC):
 
     def set_data(self, data: DataFrame) -> "AbstractPreprocessor":
         self.data = data
+        return self
 
     def get_data(self) -> DataFrame:
         return self.clean_data
 
     @abstractmethod
     def preprocess(self) -> "AbstractPreprocessor":
-        pass
-
+        ...
 
 class AbstractTextStep(ABC):
-    def call(self, text: str) -> str:
-        return text
-    
+    def call(self, x: str) -> str:
+        ...
+
 
 class LowerStep(AbstractTextStep):
-    def call(self, text: str) -> str:
-        return text.lower()
-    
+    def call(self, x: str) -> str:
+        return x.lower()
 
 class UnicodeStep(AbstractTextStep):
-    def call(self, text: str) -> str:
-        return unidecode(text)
-
+    def call(self, x: str) -> str:
+        return unidecode(x)
 
 class WordTokenStep(AbstractTextStep):
-    def __init__(self, lang: str = "english"):
+    def __init__(self, lang: str="english"):
         self.lang = lang
 
-    def call(self, text: str) -> str:
-        return " ".join(word_tokenize(text, language=self.lang))
+    def call(self, x: str) -> str:
+        tokens = word_tokenize(x, language=self.lang)
+        return " ".join(tokens)
 
+class StopwordStep(AbstractTextStep):
+    def __init__(self, lang: str="english"):
+        self.sw = stopwords.words(lang)
 
-class StopWordsStep(AbstractTextStep):
-    def __init__(self, lang: str = "english"):
-        self.lang = lang
-        self.stop_words = stopwords.words(self.lang)
-
-    def call(self, text: str) -> str:
-        tokens = text.split(" ")
-        filtered_tokens = filter(lambda token: token not in self.stop_words, tokens)
+    def call(self, x: str) -> str:
+        tokens = x.split(" ")
+        filtered_tokens = filter(lambda token: token not in self.sw, tokens)
         return " ".join(filtered_tokens)
 
-
 class LenFilterStep(AbstractTextStep):
-    def __init__(self, min_len: int, max_len: int) -> None:
+    def __init__(self, min_len: int, max_len: int):
         self.min_len = min_len
         self.max_len = max_len
 
-    def call(self, text: str) -> str:
-        tokens = text.split(" ")
-        filtered_tokens = filter(lambda token: len(token) >= self.min_len and len(token) <= self.max_len, tokens)
+    def call(self, x: str) -> str:
+        tokens = x.split(" ")
+        filtered_tokens = filter(
+                lambda token: len(token) >= self.min_len and len(token) <= self.max_len,
+                tokens
+                )
         return " ".join(filtered_tokens)
 
-
 class AbstractRegexStep(AbstractTextStep, ABC):
+
     @abstractmethod
-    def get_pattern(self) -> str:
-        pass
+    def get_pattern(self) -> re.Pattern:
+        ...
 
-    def call(self, text: str) -> str:
-        pattern = self.get_pattern()
-        return re.sub(pattern, " ", text)
+    def call(self, x: str) -> str:
+        pat = self.get_pattern()
+        return re.sub(pat, ' ', x)
 
-
-class URLRemovalStep(AbstractRegexStep):
+class UrlRemovalStep(AbstractRegexStep):
     def get_pattern(self) -> re.Pattern:
         return re.compile(r"https?://[^\s]+ ")
 
-
-class SPRemovalStep(AbstractRegexStep):
+class SpRemovalStep(AbstractRegexStep):
     def get_pattern(self) -> re.Pattern:
-        return re.compile(r"[^a-zA-Z\s]+")
-    
+        return re.compile(r"[^a-z ]")
 
-class DupSpacesStep(AbstractTextStep):
+class DupSpacesStep(AbstractRegexStep):
     def get_pattern(self) -> re.Pattern:
         return re.compile(r"\s+")
-
 
 class TextPreprocessor(AbstractPreprocessor):
     def __init__(self, column: str, steps: List[AbstractTextStep]):
@@ -97,9 +92,9 @@ class TextPreprocessor(AbstractPreprocessor):
         self.steps = steps
 
     def preprocess(self):
-        def clean_function(text: str) -> str:
+        def clean_fn(x: str) -> str:
             for step in self.steps:
-                text = step.call(text)
-            return text
-        self.clean_data = self.data.assign(**{self.column: lambda df: df[self.column].apply(clean_function)})
+                x = step.call(x)
+            return x
+        self.clean_data = self.data.assign(**{self.column: lambda df: df[self.column].apply(clean_fn)})
         return self

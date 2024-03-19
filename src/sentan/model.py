@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+import joblib
 from pandas import DataFrame
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sentan.eval import ModelEvaluator
+from pathlib import Path
 from typing import Dict
 
 class AbstractModelBuilder(ABC):
@@ -14,48 +16,47 @@ class AbstractModelBuilder(ABC):
         return self.model
 
     @abstractmethod
-    def build(self):
-        pass
-
+    def build(self) -> "AbstractModelBuilder":
+        ...
 
 class BowLogisticBuilder(AbstractModelBuilder):
+
     def build(self) -> "BowLogisticBuilder":
-        self.model = Pipeline([
-            ("vect", TfidfVectorizer()),
-            ("clf", LogisticRegression())
-        ])
-        return self
-    
-
-class TFIDFRandomForestBuilder(AbstractModelBuilder):
-    def __init__(self, n_estimators: int, max_depth: int) -> None:
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-
-
-    def build(self) -> "TFIDFRandomForestBuilder":
-        self.model = Pipeline([
-            ("vect", TfidfVectorizer()),
-            ("clf", RandomForestClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth))
-        ])
-        return self
-
-
-class TFIDFLogisticBuilder(AbstractModelBuilder):
-    def build(self) -> "TFIDFLogisticBuilder":
         self.model = Pipeline([
             ("vect", CountVectorizer()),
             ("clf", LogisticRegression())
-        ])
+            ])
         return self
 
+class TfidfLogisticBuilder(AbstractModelBuilder):
 
+    def build(self) -> "TfidfLogisticBuilder":
+        self.model = Pipeline([
+            ("vect", TfidfVectorizer()),
+            ("clf", LogisticRegression())
+            ])
+        return self
 
-class AbstractModelProccessor(ABC):
+class TfidfRandomForestBuilder(AbstractModelBuilder):
+    def __init__(self, n_estimators: int, max_depth: int):
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+
+    def build(self) -> "TfidfLogisticBuilder":
+        self.model = Pipeline([
+            ("vect", TfidfVectorizer()),
+            ("clf", RandomForestClassifier(
+                n_estimators=self.n_estimators,
+                max_depth=self.max_depth,
+                ))
+            ])
+        return self
+
+class AbstractModelProcessor(ABC):
     model: Pipeline
     data: DataFrame
 
-    def set_elements(self, model: Pipeline, data: DataFrame) -> "AbstractModelProccessor":
+    def set_elements(self, model: Pipeline, data: DataFrame) -> "AbstractModelProcessor":
         self.model = model
         self.data = data
         return self
@@ -64,29 +65,27 @@ class AbstractModelProccessor(ABC):
         return self.model
 
     @abstractmethod
-    def process(self) -> "AbstractModelProccessor":
-        pass
+    def process(self) -> "AbstractModelProcessor":
+        ...
 
-class TrainModelProccessor(AbstractModelProccessor):
+class TrainModelProcessor(AbstractModelProcessor):
     def __init__(
-        self, 
-        text_column: str, 
-        label_column: str, 
-        partition_column: str, 
-        evaluator: ModelEvaluator, 
+        self,
+        text_column: str,
+        label_column: str,
+        partition_column: str,
+        model_path: Path,
+        evaluator: ModelEvaluator,
         label_maps: Dict[str, int]
-    ) -> None:
+    ):
         self.text_column = text_column
         self.label_column = label_column
         self.partition_column = partition_column
+        self.model_path = model_path
         self.evaluator = evaluator
         self.label_maps = label_maps
 
-
-    def process(self) -> "TrainModelProccessor":
-        self.data = self.data.assign(
-            label=self.data[self.label_column].map(self.label_maps)
-        )
+    def process(self) -> "AbstractModelProcessor":
         train_data = self.data.query(f"{self.partition_column} == 'train'")
         test_data = self.data.query(f"{self.partition_column} == 'test'")
 
@@ -95,4 +94,6 @@ class TrainModelProccessor(AbstractModelProccessor):
 
         self.model.fit(train_corpus, train_labels)
         self.evaluator.evaluate(test_corpus, test_labels, self.model)
+
+        joblib.dump(self.model, filename=self.model_path)
         return self
